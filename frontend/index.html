@@ -14,12 +14,10 @@
       <h2>Total</h2>
       <p id="total">0</p>
     </div>
-
     <div class="card urgente">
       <h2>Urgentes</h2>
       <p id="urgentes">0</p>
     </div>
-
     <div class="card normal">
       <h2>Normais</h2>
       <p id="normais">0</p>
@@ -28,10 +26,107 @@
 
   <div class="ultimo">
     <h2>Último chamado</h2>
-    <p><strong>Motivo:</strong> <span id="motivo"></span></p>
-    <p><strong>Descrição:</strong> <span id="descricao"></span></p>
+    <p><strong>Segmento:</strong> <span id="ultimoSegmento">-</span></p>
+    <p><strong>Motivo:</strong> <span id="ultimoMotivo">-</span></p>
+    <p><strong>Data/Hora:</strong> <span id="ultimoHora">-</span></p>
   </div>
 
-  <script src="script.js"></script>
+  <div class="painel-graficos">
+    <div class="card">
+      <h3>ACIONAMENTO POR SEGMENTO (HOJE)</h3>
+      <div class="grafico-box">
+        <canvas id="graficoSegmento"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h3>ACIONAMENTO POR MOTIVO (HOJE)</h3>
+      <div class="grafico-box">
+        <canvas id="graficoMotivo"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h3>ACIONAMENTO POR TURNO (HOJE)</h3>
+      <div class="grafico-box">
+        <canvas id="graficoTurno"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+  // ============================================================
+  // SCRIPT INLINE - sem cache, sempre atualizado
+  // ============================================================
+  const SEGMENTOS_FIXOS = [
+    "SEGURANÇA HO","CFTV IP","CONTROLE DE ACESSO",
+    "COMUNICAÇÃO HO","SPEED DOME","CAPTAÇÃO DE IMAGEM","GERENCIAMENTO DE IMAGEM"
+  ];
+  const TURNOS_FIXOS = ["1° TURNO","2° TURNO","3° TURNO"];
+
+  const graficos = {};
+
+  function criarOuAtualizarGrafico(canvasId, labels, valores) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    if (graficos[canvasId]) { graficos[canvasId].destroy(); }
+    graficos[canvasId] = new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [{ data: valores, backgroundColor: "#6aa84f", borderRadius: 6, barThickness: 18 }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.raw} chamados` } }
+        },
+        scales: {
+          x: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 }, grid: { color: "#e6e6e6" } },
+          y: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  function carregarDashboard() {
+    fetch("http://127.0.0.1:8000/api/dashboard")
+      .then(r => r.json())
+      .then(data => {
+        console.log("Dashboard recebido:", data);
+
+        document.getElementById("total").innerText    = data.total    ?? 0;
+        document.getElementById("urgentes").innerText = data.urgentes ?? 0;
+        document.getElementById("normais").innerText  = data.normais  ?? 0;
+
+        document.getElementById("ultimoSegmento").innerText = data.ultimo_chamado?.segmento  || "-";
+        document.getElementById("ultimoMotivo").innerText   = data.ultimo_chamado?.motivo    || "-";
+        document.getElementById("ultimoHora").innerText     = data.ultimo_chamado?.data_hora || "-";
+
+        // Segmento
+        const segmentosCompletos = {};
+        SEGMENTOS_FIXOS.forEach(s => segmentosCompletos[s] = data.segmentos?.[s] ?? 0);
+        criarOuAtualizarGrafico("graficoSegmento", Object.keys(segmentosCompletos), Object.values(segmentosCompletos));
+
+        // Motivo
+        const listaMotivos = Object.entries(data.motivos || {}).sort((a,b) => b[1]-a[1]);
+        criarOuAtualizarGrafico(
+          "graficoMotivo",
+          listaMotivos.length ? listaMotivos.map(i=>i[0]) : ["Sem acionamentos"],
+          listaMotivos.length ? listaMotivos.map(i=>i[1]) : [0]
+        );
+
+        // Turno
+        const turnosCompletos = {};
+        TURNOS_FIXOS.forEach(t => turnosCompletos[t] = data.turnos?.[t] ?? 0);
+        criarOuAtualizarGrafico("graficoTurno", Object.keys(turnosCompletos), Object.values(turnosCompletos));
+      })
+      .catch(err => console.error("Erro ao carregar dashboard:", err));
+  }
+
+  carregarDashboard();
+  setInterval(carregarDashboard, 5000);
+  </script>
+
 </body>
 </html>

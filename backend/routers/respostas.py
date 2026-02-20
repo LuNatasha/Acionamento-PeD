@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from database import SessionLocal, Resposta
+from backend.database import SessionLocal, Resposta
 
 router = APIRouter()
 

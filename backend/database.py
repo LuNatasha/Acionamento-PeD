@@ -1,6 +1,7 @@
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from datetime import datetime
 
 DATABASE_URL = "sqlite:///./database.db"
 
@@ -24,5 +25,6 @@ class Resposta(Base):
     prioridade = Column(String)
     turno = Column(String)
     executor = Column(String)
+    data_abertura = Column(String, default=lambda: datetime.now().strftime("%d/%m/%Y %H:%M"))
 
 Base.metadata.create_all(bind=engine)

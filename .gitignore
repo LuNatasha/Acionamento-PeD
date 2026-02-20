@@ -1,0 +1,17 @@
+# Banco de dados
+database.db
+
+# Configurações da IDE
+.idea/
+
+# Ambiente virtual Python
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Sistema operacional
+.DS_Store
+Thumbs.dbS
